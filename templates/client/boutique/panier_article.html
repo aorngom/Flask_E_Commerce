@@ -1,0 +1,69 @@
+{% extends "client/layout_client.html" %}
+{% block body %}
+    <div class="container">
+        <div class="row align-self-right">
+        {% include('client/boutique/_panier.html') %}
+            <div class="col">
+              <h3>Les filtres</h3>
+              Articles dont le nom est composé par :<br>
+                 {% include('client/boutique/_filtre.html') %}
+            </div>
+        </div>
+
+        <div class="bg-light p-3">
+            <h1>Les jeans</h1>
+        </div>
+
+        <div class="row">
+            {% for jean in jeans %}
+                <div class="card col-4 mt-4 p-1">
+                    <div class="card-body border-dark rounded p-1">
+                        <a href="/client/jean/details?id_jean={{ jean.id_jean }}" >
+                            <h3 class="card-title">
+                                <span style="color: #0b2e13">{{ jean.nom_jean }}</span><br>
+                                {{ jean.prix_jean }} €
+                            </h3>
+                            {% if jean.image is not none %}
+                                <img class="card-img-top rounded mx-auto d-block"  style="width:300px;height:300px"
+                                     src="{{ url_for('static', filename='images/' + jean.image) }}" alt="image de {{ jean.nom_jean }}" >
+                            {% else %}
+                                <img class="card-img-top rounded mx-auto d-block"
+                                     src="{{ url_for('static', filename='images/no_photo.jpeg')}}"  alt="image de {{ jean.nom_jean }}" >
+                            {% endif %}
+                            <hr>
+                        </a>
+                        <div class="row">
+                            {% if jean.stock is defined and jean.stock is not none %}
+                                {% if jean.stock > 0 %}
+                                    <form  action="/client/panier/add"  method="post" class="col-5">
+                                        <input type="hidden" name="id_jean" value="{{ jean.id_jean }}">
+                                        <div class="input-group">
+                                            <button class="btn  btn-success"  id="button-addon1">
+                                                <i class="fas fa-shopping-cart">Ajouter</i>
+                                            </button>
+                                            <input type="number" id="input-{{ jean.id_jean }}" step="1" min="0" max="{{ jean.stock }}"
+                                                   class="form-control" value="1" name="quantite"  aria-describedby="button-addon1">
+                                        </div>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                            <div class="col-2 align-content-end">
+                                <!-- Vos actions ici, par exemple, ajout à la liste d'envies -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        {% if jean.stock is defined and jean.stock is not none %}
+                            {% if jean.stock > 0 %}
+                                <small class="text-muted">Stock restant : {{ jean.stock }}</small>
+                            {% else %}
+                                <small class="text-muted">Article momentanément indisponible</small>
+                            {% endif %}
+                        {% endif %}
+                        <!-- Ajoutez d'autres informations spécifiques à votre modèle ici -->
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
