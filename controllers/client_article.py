@@ -1,5 +1,5 @@
 # Importez ces fonctions pour utiliser la méthode generate_password_hash
-from flask import Blueprint, render_template, session
+from flask import Blueprint, render_template, session, flash, redirect, url_for
 from connexion_db import get_db
 
 client_article = Blueprint('client_article', __name__, template_folder='templates')
@@ -8,13 +8,18 @@ client_article = Blueprint('client_article', __name__, template_folder='template
 @client_article.route('/client/index')
 @client_article.route('/client/article/show')
 def client_article_show():
+    if 'id_user' not in session:
+        # Rediriger l'utilisateur vers la page de connexion s'il n'est pas connecté
+        flash("Vous devez être connecté pour accéder à cette page", "error")
+        return redirect(url_for('login'))  # Assurez-vous que 'login' est le nom de votre route de connexion
+
     mycursor = get_db().cursor()
     id_client = session['id_user']
 
     # Sélection des articles (jeans)
     sql = '''
     SELECT jean.id_jean, jean.matiere, jean.couleur, jean.description, jean.marque, jean.nom_jean, jean.prix_jean,
-           coupe_jean.nom_coupe, taille.nom_taille,jean.image
+           coupe_jean.nom_coupe, taille.nom_taille, jean.image
     FROM jean
     JOIN coupe_jean ON jean.id_coupe_jean = coupe_jean.id_coupe_jean
     JOIN taille ON jean.id_taille = taille.id_taille
@@ -31,14 +36,18 @@ def client_article_show():
 
     if len(articles_panier) >= 1:
         # Calcul du prix total du panier
-        sql_prix_total = ''' Calcul du prix total du panier '''
-        mycursor.execute(sql_prix_total)
+        sql_prix_total = '''
+        SELECT SUM(prix_jean) AS prix_total
+        FROM jean
+        WHERE id_jean IN (SELECT id_jean FROM ligne_panier WHERE id_utilisateur = %s)
+        '''
+        mycursor.execute(sql_prix_total, (id_client,))
         prix_total = mycursor.fetchone()['prix_total']
     else:
         prix_total = None
 
     return render_template('client/boutique/panier_article.html',
-                           jeans = jeans,
+                           jeans=jeans,
                            articles_panier=articles_panier,
                            prix_total=prix_total,
                            items_filtre=coupe_jean)
