@@ -5,7 +5,6 @@ from connexion_db import get_db
 # Création du blueprint pour les commandes client
 client_commande = Blueprint('client_commande', __name__, template_folder='templates')
 
-
 # Vue pour valider la commande
 @client_commande.route('/client/commande/valide', methods=['POST'])
 def client_commande_valide():
@@ -30,7 +29,6 @@ def client_commande_valide():
                            articles_panier=articles_panier,
                            prix_total=prix_total,
                            validation=1)
-
 
 # Vue pour ajouter une commande
 @client_commande.route('/client/commande/add', methods=['POST'])
@@ -68,7 +66,6 @@ def client_commande_add():
 
     # Redirection vers la page des articles
     return redirect('/client/article/show')
-
 
 # Vue pour afficher les commandes du client
 @client_commande.route('/client/commande/show', methods=['GET', 'POST'])
