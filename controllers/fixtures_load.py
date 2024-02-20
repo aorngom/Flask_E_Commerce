@@ -1,3 +1,4 @@
+
 #! /usr/bin/python
 # -*- coding:utf-8 -*-
 from flask import *
@@ -10,40 +11,44 @@ fixtures_load = Blueprint('fixtures_load', __name__,
 
 @fixtures_load.route('/base/init')
 def fct_fixtures_load():
-    mycursor = get_db().cursor()
-    sql="DROP TABLE IF EXISTS ligne_commande, ligne_panier, jean, commande, etat, taille, coupe_jean, utilisateur;"
-    mycursor.execute(sql)
-    sql='''
-    CREATE TABLE utilisateur(
-    id_utilisateur CHAR(50),
-   login VARCHAR(100) NOT NULL,
-   email VARCHAR(150) NOT NULL,
-   nom VARCHAR(100) NOT NULL,
-   password VARCHAR(50) NOT NULL,
-   role VARCHAR(50) NOT NULL,
-   PRIMARY KEY(id_utilisateur)
-    )  DEFAULT CHARSET utf8;
-    '''
-    mycursor.execute(sql)
-    sql='''
-   INSERT INTO utilisateur (id_utilisateur, login, email, nom, password, role) VALUES
-('1', 'client', 'utilisateur1@example.com', 'Utilisateur1 Nom', 'client', 'Client'),
-('2', 'utilisateur2', 'utilisateur2@example.com', 'Utilisateur2 Nom', 'motdepasse2', 'Client'),
-('3', 'utilisateur3', 'utilisateur3@example.com', 'Utilisateur3 Nom', 'motdepasse3', 'Client'),
-('4', 'utilisateur4', 'utilisateur4@example.com', 'Utilisateur4 Nom', 'motdepasse4', 'Client'),
-('5', 'admin', 'admin@example.com', 'Admin Nom', 'adminmotdepasse', 'Admin');
-    '''
-    mycursor.execute(sql)
 
-    sql='''
-   CREATE TABLE coupe_jean(
-   id_coupe_jean CHAR(50),
-   nom_coupe VARCHAR(100) NOT NULL,
-   PRIMARY KEY(id_coupe_jean)
-)DEFAULT CHARSET utf8;
+    mycursor = get_db().cursor()
+    sql='''DROP TABLE IF EXISTS ligne_commande, ligne_panier, jean, commande, etat, taille, coupe_jean, utilisateur;'''
+
+    mycursor.execute(sql)
+    sql = '''
+    CREATE TABLE utilisateur(
+    id_utilisateur INT AUTO_INCREMENT PRIMARY KEY,
+    login VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL,
+    nom VARCHAR(100) NOT NULL,
+    est_actif int,
+    password VARCHAR(100) NOT NULL,
+    role VARCHAR(50) NOT NULL
+) DEFAULT CHARSET utf8;
     '''
     mycursor.execute(sql)
-    sql='''
+    sql = '''
+   INSERT INTO utilisateur(id_utilisateur,login,email,password,role,nom,est_actif) VALUES
+(1,'admin','admin@admin.fr',
+    'pbkdf2:sha256$dPL3oH9ug1wjJqva$2b341da75a4257607c841eb0dbbacb76e780f4015f0499bb1a164de2a893fdbf',
+    'ROLE_admin','admin','1'),
+(2,'client','client@client.fr',
+    'sha256$1GAmexw1DkXqlTKK$31d359e9adeea1154f24491edaa55000ee248f290b49b7420ced542c1bf4cf7d',
+    'ROLE_client','client','1'),
+(3,'client2','client2@client2.fr',
+    'sha256$MjhdGuDELhI82lKY$2161be4a68a9f236a27781a7f981a531d11fdc50e4112d912a7754de2dfa0422',
+    'ROLE_client','client2','1');
+    '''
+    mycursor.execute(sql)
+    sql = '''
+   CREATE TABLE coupe_jean(
+   id_coupe_jean INT AUTO_INCREMENT PRIMARY KEY,
+   nom_coupe VARCHAR(100) NOT NULL
+)DEFAULT CHARSET utf8;  
+    '''
+    mycursor.execute(sql)
+    sql = '''
 INSERT INTO coupe_jean (id_coupe_jean, nom_coupe) VALUES
 ('1', 'Slim'),
 ('2', 'Droit'),
@@ -52,26 +57,10 @@ INSERT INTO coupe_jean (id_coupe_jean, nom_coupe) VALUES
 ('5', 'Flare');
     '''
     mycursor.execute(sql)
-
-    mysql='''CREATE TABLE taille(
-   id_taille CHAR(50),
-   nom_taille VARCHAR(100) NOT NULL,
-   PRIMARY KEY(id_taille)
-);'''
-    mycursor.execute(mysql)
-    sql='''INSERT INTO taille (id_taille, nom_taille) VALUES
-('1', 'XS'),
-('2', 'S'),
-('3', 'M'),
-('4', 'L'),
-('5', 'XL');'''
-    mycursor.execute(sql)
-
-    sql='''
-    CREATE TABLE etat(
-   id_etat CHAR(50),
-   libelle VARCHAR(150) NOT NULL,
-   PRIMARY KEY(id_etat)
+    sql = '''
+   CREATE TABLE etat(
+   id_etat INT AUTO_INCREMENT PRIMARY KEY,
+   libelle VARCHAR(150) NOT NULL
 ) DEFAULT CHARSET=utf8;
     '''
     mycursor.execute(sql)
@@ -85,21 +74,37 @@ INSERT INTO coupe_jean (id_coupe_jean, nom_coupe) VALUES
     mycursor.execute(sql)
 
     sql = '''
+   CREATE TABLE taille(
+   id_taille int AUTO_INCREMENT PRIMARY key,
+   nom_taille VARCHAR(100) NOT NULL
+) DEFAULT CHARSET=utf8;  
+    '''
+    mycursor.execute(sql)
+    sql = '''INSERT INTO taille (id_taille, nom_taille) VALUES
+('1', 'XS'),
+('2', 'S'),
+('3', 'M'),
+('4', 'L'),
+('5', 'XL');
+    '''
+    mycursor.execute(sql)
+
+
+    sql = '''
     CREATE TABLE jean(
-   id_jean CHAR(50),
+   id_jean int AUTO_INCREMENT PRIMARY KEY,
    matiere VARCHAR(50) NOT NULL,
    couleur VARCHAR(50) NOT NULL,
    description VARCHAR(255) NOT NULL,
    marque VARCHAR(50) NOT NULL,
    nom_jean VARCHAR(50) NOT NULL,
    prix_jean DECIMAL(15,3) NOT NULL,
-   id_coupe_jean CHAR(50) NOT NULL,
-   id_taille CHAR(50) NOT NULL,
-   image VARCHAR(25) NOT NULL,
-   PRIMARY KEY(id_jean),
+   id_coupe_jean INT NOT NULL,
+   id_taille INT NOT NULL,
+   image VARCHAR(50) not null,
    FOREIGN KEY(id_coupe_jean) REFERENCES coupe_jean(id_coupe_jean),
-   FOREIGN KEY(id_taille) REFERENCES taille(id_taille)
-) DEFAULT CHARSET=utf8;
+FOREIGN KEY(id_taille) REFERENCES taille(id_taille)
+) DEFAULT CHARSET=utf8;  
      '''
     mycursor.execute(sql)
     sql = '''
@@ -122,17 +127,15 @@ INSERT INTO jean (id_jean, matiere, couleur, description, marque, nom_jean, prix
 
          '''
     mycursor.execute(sql)
-
     sql = '''
     CREATE TABLE commande(
-   id_commande CHAR(50),
-   date_achat DATE NOT NULL,
-   id_utilisateur CHAR(50) NOT NULL,
-   id_etat CHAR(50) NOT NULL,
-   PRIMARY KEY(id_commande),
-   FOREIGN KEY(id_utilisateur) REFERENCES utilisateur(id_utilisateur),
-   FOREIGN KEY(id_etat) REFERENCES etat(id_etat)
-)DEFAULT CHARSET=utf8;
+    id_commande INT AUTO_INCREMENT PRIMARY KEY,
+    date_achat DATE NOT NULL,
+    id_utilisateur INT NOT NULL,
+    id_etat INT NOT NULL,
+    FOREIGN KEY(id_utilisateur) REFERENCES utilisateur(id_utilisateur),
+    FOREIGN KEY(id_etat) REFERENCES etat(id_etat)
+) DEFAULT CHARSET=utf8;
      '''
     mycursor.execute(sql)
     sql = '''
@@ -140,19 +143,18 @@ INSERT INTO commande (id_commande, date_achat, id_utilisateur, id_etat) VALUES
 ('1', '2024-01-28', '1', '1'),
 ('2', '2024-01-27', '2', '2'),
 ('3', '2024-01-26', '3', '3'),
-('4', '2024-01-25', '4', '4'),
-('5', '2024-01-24', '5', '5');                 '''
+('4', '2024-01-25', '1', '4'),
+('5', '2024-01-24', '3', '5');  '''
     mycursor.execute(sql)
-
     sql = '''
    CREATE TABLE ligne_commande(
-   id_jean CHAR(50),
-   id_commande CHAR(50),
-   prix DECIMAL(15,3) NOT NULL,
-   quantite INT NOT NULL,
-   PRIMARY KEY(id_jean, id_commande),
-   FOREIGN KEY(id_jean) REFERENCES jean(id_jean),
-   FOREIGN KEY(id_commande) REFERENCES commande(id_commande)
+    id_jean INT NOT NULL,
+    id_commande INT NOT NULL,
+    prix DECIMAL(15,3) NOT NULL,
+    quantite INT NOT NULL,
+    PRIMARY KEY(id_jean, id_commande),
+    FOREIGN KEY(id_jean) REFERENCES jean(id_jean),
+    FOREIGN KEY(id_commande) REFERENCES commande(id_commande)
 );  '''
     mycursor.execute(sql)
     sql = '''
@@ -163,12 +165,10 @@ INSERT INTO ligne_commande (id_jean, id_commande, prix, quantite) VALUES
 ('4', '4', 27.80, 1),
 ('5', '5', 39.99, 2);         '''
     mycursor.execute(sql)
-
-
     sql = '''
     CREATE TABLE ligne_panier(
-   id_jean CHAR(50),
-   id_utilisateur CHAR(50),
+   id_jean int ,
+   id_utilisateur int,
    quantite INT NOT NULL,
    date_ajout DATE NOT NULL,
    PRIMARY KEY(id_jean, id_utilisateur),
@@ -177,13 +177,13 @@ INSERT INTO ligne_commande (id_jean, id_commande, prix, quantite) VALUES
 );
          '''
     mycursor.execute(sql)
-    sql ='''INSERT INTO ligne_panier (id_jean, id_utilisateur, quantite, date_ajout) VALUES
+    sql = '''INSERT INTO ligne_panier (id_jean, id_utilisateur, quantite, date_ajout) VALUES
 ('1', '1', 2, '2024-01-28'),
 ('2', '2', 1, '2024-01-27'),
 ('3', '3', 3, '2024-01-26'),
-('4', '4', 1, '2024-01-25'),
-('5', '5', 2, '2024-01-24');'''
+('4', '2', 1, '2024-01-25'),
+('5', '1', 2, '2024-01-24');'''
 
-
+    mycursor.execute(sql)
     get_db().commit()
     return redirect('/')
