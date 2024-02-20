@@ -77,7 +77,7 @@ def client_commande_show():
     id_client = session['id_user']
 
     # Sélection des commandes du client
-    sql = "SELECT * FROM commande WHERE id_client = %s ORDER BY etat, date_achat DESC"
+    sql = "SELECT * FROM commande WHERE id_utilisateur = %s ORDER BY etat, date_achat DESC"
     mycursor.execute(sql, (id_client,))
     commandes = mycursor.fetchall()
 

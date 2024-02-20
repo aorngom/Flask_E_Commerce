@@ -20,32 +20,28 @@ def auth_login_post():
     mycursor = get_db().cursor()
     login = request.form.get('login')
     password = request.form.get('password')
-
-    # Requête pour récupérer l'utilisateur basé sur le login
-    sql = "SELECT * FROM utilisateur WHERE login = %s"
-    mycursor.execute(sql, (login,))
+    tuple_select = (login,)
+    sql = "SELECT * FROM utilisateur WHERE login=%s"
+    retour = mycursor.execute(sql, (login,))
     user = mycursor.fetchone()
-
     if user:
-        # Vérification du mot de passe
-        if check_password_hash(user['password'], password):
-            # Authentification réussie
+        mdp_ok = check_password_hash(user['password'], password)
+        if not mdp_ok:
+            flash(u'Vérifier votre mot de passe et essayer encore.', 'alert-warning')
+            return redirect('/login')
+        else:
             session['login'] = user['login']
             session['role'] = user['role']
             session['id_user'] = user['id_utilisateur']
-
+            print(user['login'], user['role'])
             if user['role'] == 'ROLE_admin':
                 return redirect('/admin/commande/index')
             else:
                 return redirect('/client/article/show')
-        else:
-            # Mot de passe incorrect
-            flash(u'Mot de passe incorrect. Veuillez réessayer.', 'alert-warning')
-            return redirect('/login')
     else:
-        # Utilisateur non trouvé
-        flash(u'Utilisateur non trouvé. Veuillez vérifier votre login et réessayer.', 'alert-warning')
+        flash(u'Vérifier votre login et essayer encore.', 'alert-warning')
         return redirect('/login')
+
 @auth_security.route('/signup')
 def auth_signup():
     return render_template('auth/signup.html')
@@ -57,34 +53,34 @@ def auth_signup_post():
     email = request.form.get('email')
     login = request.form.get('login')
     password = request.form.get('password')
-
-    # Vérifier si l'email ou le login existe déjà
-    sql_select = "SELECT id_utilisateur, email, login, password FROM utilisateur WHERE email = %s OR login = %s"
-    mycursor.execute(sql_select, (email, login,))
+    tuple_select = (login, email)
+    sql = "SELECT * FROM utilisateur WHERE login = %s OR email = %s "
+    retour = mycursor.execute(sql, tuple_select)
     user = mycursor.fetchone()
     if user:
-        flash(u'L\'adresse e-mail ou le login existe déjà', 'alert-warning')
+        flash(u'votre adresse Email ou  votre Login existe déjà', 'alert-warning')
         return redirect('/signup')
 
-    # Ajouter un nouvel utilisateur
-    hashed_password = generate_password_hash(password, method='pbkdf2:sha256')
-    sql_insert = "INSERT INTO utilisateur (login, email, password, role) VALUES (%s, %s, %s, %s)"
-    tuple_insert = (login, email, hashed_password, 'ROLE_client')
-    mycursor.execute(sql_insert, tuple_insert)
+    # ajouter un nouveau user
+    password = generate_password_hash(password, method='pbkdf2:sha256')
+    print(password)
+    tuple_insert = (login, email, password, 'ROLE_client')
+    sql = """  INSERT INTO utilisateur (login,email,password,role) VALUES (%s,%s,%s,%s);  """
+    mycursor.execute(sql, tuple_insert)
     get_db().commit()
-
-    # Récupérer l'ID de l'utilisateur nouvellement inséré
-    sql_last_id = "SELECT LAST_INSERT_ID() AS last_id"
-    mycursor.execute(sql_last_id)
-    id_user = mycursor.fetchone()['last_id']
-
-    # Mettre à jour la session de l'utilisateur
-    session.clear()  # Supprimer toutes les clés de session existantes
+    sql = """  SELECT last_insert_id() AS last_insert_id;  """
+    mycursor.execute(sql)
+    info_last_id = mycursor.fetchone()
+    id_user = info_last_id['last_insert_id']
+    print('last_insert_id', id_user)
+    session.pop('login', None)
+    session.pop('role', None)
+    session.pop('id_user', None)
     session['login'] = login
     session['role'] = 'ROLE_client'
     session['id_user'] = id_user
-
     return redirect('/client/article/show')
+
 
 @auth_security.route('/logout')
 def auth_logout():

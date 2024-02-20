@@ -56,12 +56,12 @@ def before_request():
                 session.pop('login', None)
                 session.pop('role', None)
                 return redirect('/login')
-     # if session['role'] == 'ROLE_client':
-     #    if not request.path.startswith('/client'):
-     #        return redirect('/client/article/show')
-     # if session['role'] == 'ROLE_admin':
-     #    if not request.path.startswith('/admin'):
-     #        return redirect('/admin')
+            if session['role'] == 'ROLE_client':
+                if not request.path.startswith('/client'):
+                    return redirect('/client/article/show')
+            if session['role'] == 'ROLE_admin':
+                if not request.path.startswith('/admin'):
+                    return redirect('/admin')
 
 
 

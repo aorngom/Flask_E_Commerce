@@ -1,3 +1,8 @@
+{#  articles_panier  : tableau de dictionnaires
+        * dictionnaire : nom quantite prix article_id [stock]
+        *
+#}
+
 {% extends "client/layout_client.html" %}
 {% block body %}
     <div class="container">
@@ -15,55 +20,83 @@
         </div>
 
         <div class="row">
-            {% for jean in jeans %}
-                <div class="card col-4 mt-4 p-1">
-                    <div class="card-body border-dark rounded p-1">
-                        <a href="/client/jean/details?id_jean={{ jean.id_jean }}" >
-                            <h3 class="card-title">
-                                <span style="color: #0b2e13">{{ jean.nom_jean }}</span><br>
-                                {{ jean.prix_jean }} €
-                            </h3>
-                            {% if jean.image is not none %}
-                                <img class="card-img-top rounded mx-auto d-block"  style="width:300px;height:300px"
-                                     src="{{ url_for('static', filename='images/' + jean.image) }}" alt="image de {{ jean.nom_jean }}" >
-                            {% else %}
-                                <img class="card-img-top rounded mx-auto d-block"
-                                     src="{{ url_for('static', filename='images/no_photo.jpeg')}}"  alt="image de {{ jean.nom_jean }}" >
-                            {% endif %}
-                            <hr>
-                        </a>
-                        <div class="row">
-                            {% if jean.stock is defined and jean.stock is not none %}
-                                {% if jean.stock > 0 %}
-                                    <form  action="/client/panier/add"  method="post" class="col-5">
-                                        <input type="hidden" name="id_jean" value="{{ jean.id_jean }}">
-                                        <div class="input-group">
+                {% for article in jeans  %}
+                        <div class="card col-4 mt-4 p-1">
+                            <div class="card-body border-dark rounded p-1">
+                                <a href="/client/article/details?id_jean={{ article.id_jean }}" >
+                                <h3 class="card-title">
+                                    <span style="color: #0b2e13">{{ article.nom_jean }}</span><br>
+                                    {{ article.prix_jean }}
+                                    €
+                                </h3>
+                                     {%  if article.image !='' %}
+                                        <img class="card-img-top rounded mx-auto d-block"  style="width:200px;height:200px"  src="{{ url_for('static', filename = 'images/')}}{{ article.image }}"  alt="image  de {{ article.nom }}" >
+                                    {% else %} <img class="card-img-top rounded mx-auto d-block"   style="width:200px;height:200px"   src="{{ url_for('static', filename='images/no_photo.jpeg')}}"  alt="image  de {{ article.nom }}" >
+                                    {% endif %}
+                                    <hr>
+                                </a>
+                                <div class="row">
+{# #}                                {% if  article.stock is defined and article.stock != None %}
+{# #}                                    {% if article.stock > 0 %}
+                                        <form  action="/client/panier/add"  method="post" class="col-5">
+                                            <input type="hidden" name="id_jean" value="{{ article.id_jean }}" id="id_jean">
+                                            <div class="input-group">
                                             <button class="btn  btn-success"  id="button-addon1">
                                                 <i class="fas fa-shopping-cart">Ajouter</i>
                                             </button>
-                                            <input type="number" id="input-{{ jean.id_jean }}" step="1" min="0" max="{{ jean.stock }}"
-                                                   class="form-control" value="1" name="quantite"  aria-describedby="button-addon1">
-                                        </div>
-                                    </form>
+                                                   {% for i in nb_declinaisons %}
+                                                    {% if article.id_article == i.id_article and i.nb_declinaisons == 1 %}
+                                                    <input type="number" id="input-{{ article.id_jean }}" step="1" min="0" max="{{ article.stock }}" class="form-control" value="1" name="quantite"  aria-describedby="button-addon1" id="quantite">
+                                                    {% endif %}
+                                                    {% endfor %}
+                                            </div>
+                                        </form>
+{# #}                                    {% endif %}
+{# #}                                {% endif %}
+                                     <div class="col-2 align-content-end">
+                                    {% if article.liste_envie is defined %}
+                                         {%if  article.liste_envie== 1%}
+                                             <a href="/client/envie/add?id_article={{ article.id_article }}" style="text-decoration: none">💛</a>
+                                         {% else %}
+                                             <a href="/client/envie/add?id_article={{ article.id_article }}" style="text-decoration: none">🤍</a>
+                                         {% endif %}
+                                    {% endif %}
+                                     </div>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                            {% if article.stock is defined and article.stock != None %}
+                                 {% if article.stock > 0 %}
+                                    <small class="text-muted">Stock restant : {{ article.stock }}</small>
+                                 {% else %}
+                                    <small class="text-muted">article  momentanément indisponible</small>
+                                 {% endif %}
+
+                                {% for i in nb_declinaisons %}
+                                {% if article.id_article == i.id_article and i.nb_declinaison != '' %}
+                                    ({{ i.nb_declinaisons }} d.)
+                                {% endif %}
+                                {% endfor %}
+                                <br>
+                            {% endif %}
+                            {% if article.nb_notes is defined %}
+                                {% if article.nb_notes > 0 %}
+                                 <a  href="/client/article/details?id_article={{ article.id_jean }}" >
+                                    <span style="color: #3A7734"> note : {{  "{:,.1f}".format(article.moy_notes) }}({{ article.nb_notes }})</span>
+                                 </a>
                                 {% endif %}
                             {% endif %}
-                            <div class="col-2 align-content-end">
-                                <!-- Vos actions ici, par exemple, ajout à la liste d'envies -->
+                            {% if article.nb_avis is defined %}
+                                {% if article.nb_avis > 0 %}
+                                 <a href="/client/article/details?id_article={{ article.id_jean }}" >
+                                    <span style="color: #3A7734">({{ article.nb_avis }} avis)</span>
+                                 </a>
+                                {% endif %}
+                            {% endif %}
                             </div>
                         </div>
-                    </div>
-                    <div class="card-footer">
-                        {% if jean.stock is defined and jean.stock is not none %}
-                            {% if jean.stock > 0 %}
-                                <small class="text-muted">Stock restant : {{ jean.stock }}</small>
-                            {% else %}
-                                <small class="text-muted">Article momentanément indisponible</small>
-                            {% endif %}
-                        {% endif %}
-                        <!-- Ajoutez d'autres informations spécifiques à votre modèle ici -->
-                    </div>
-                </div>
-            {% endfor %}
+                {% endfor %}
         </div>
     </div>
+{#    {{ articles | pprint }}#}
 {% endblock %}

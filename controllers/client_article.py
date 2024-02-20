@@ -18,7 +18,7 @@ def client_article_show():
 
     # Sélection des articles (jeans)
     sql = '''
-    SELECT jean.id_jean, jean.matiere, jean.couleur, jean.description, jean.marque, jean.nom_jean, jean.prix_jean,
+    SELECT jean.id_jean, jean.matiere, jean.couleur, jean.description, jean.marque, jean.nom_jean, jean.prix_jean,jean.stock,
            coupe_jean.nom_coupe, taille.nom_taille, jean.image
     FROM jean
     JOIN coupe_jean ON jean.id_coupe_jean = coupe_jean.id_coupe_jean
