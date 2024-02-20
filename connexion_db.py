@@ -9,6 +9,10 @@ project_folder = os.path.expanduser('~/Clone_GitHub/Flask_E_Commerce')
 # Charger les variables d'environnement à partir du fichier .env dans le dossier du projet
 dotenv_path = os.path.join(project_folder, '.env')
 load_dotenv(dotenv_path)
+<<<<<<< HEAD
+=======
+
+>>>>>>> 739ba3d8965a7c5718678a99b6a73b77b1971ce9
 
 def get_db():
     try:
@@ -24,4 +28,8 @@ def get_db():
     except Exception as e:
         print("Erreur lors du chargement du fichier .env:", e)
         return None
+<<<<<<< HEAD
     return g.db
+=======
+    return g.db
+>>>>>>> 739ba3d8965a7c5718678a99b6a73b77b1971ce9

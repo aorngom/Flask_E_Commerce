@@ -1,87 +1,86 @@
-#! /usr/bin/python
-# -*- coding:utf-8 -*-
-from flask import Blueprint
-from flask import Flask, request, render_template, redirect, url_for, abort, flash, session, g
-from datetime import datetime
+# Importation des modules nécessaires
+from flask import Blueprint, request, render_template, redirect, flash, session
 from connexion_db import get_db
 
-client_commande = Blueprint('client_commande', __name__,
-                        template_folder='templates')
+# Création du blueprint pour les commandes client
+client_commande = Blueprint('client_commande', __name__, template_folder='templates')
 
-
-# validation de la commande : partie 2 -- vue pour choisir les adresses (livraision et facturation)
+# Vue pour valider la commande
 @client_commande.route('/client/commande/valide', methods=['POST'])
 def client_commande_valide():
+    # Récupération de la connexion à la base de données
     mycursor = get_db().cursor()
+
+    # Récupération de l'identifiant du client depuis la session
     id_client = session['id_user']
-    sql = ''' selection des articles d'un panier 
-    '''
-    articles_panier = []
-    if len(articles_panier) >= 1:
-        sql = ''' calcul du prix total du panier '''
-        prix_total = None
-    else:
-        prix_total = None
-    # etape 2 : selection des adresses
-    return render_template('client/boutique/panier_validation_adresses.html'
-                           #, adresses=adresses
-                           , articles_panier=articles_panier
-                           , prix_total= prix_total
-                           , validation=1
-                           #, id_adresse_fav=id_adresse_fav
-                           )
 
+    # Sélection des articles du panier
+    sql = "SELECT * FROM panier WHERE id_client = %s"
+    mycursor.execute(sql, (id_client,))
+    articles_panier = mycursor.fetchall()
 
+    # Calcul du prix total du panier
+    prix_total = 0
+    for article in articles_panier:
+        prix_total += article['prix']
+
+    # Renvoi du template avec les données nécessaires
+    return render_template('client/boutique/panier_validation_adresses.html',
+                           articles_panier=articles_panier,
+                           prix_total=prix_total,
+                           validation=1)
+
+# Vue pour ajouter une commande
 @client_commande.route('/client/commande/add', methods=['POST'])
 def client_commande_add():
+    # Récupération de la connexion à la base de données
     mycursor = get_db().cursor()
 
-    # choix de(s) (l')adresse(s)
-
+    # Récupération de l'identifiant du client depuis la session
     id_client = session['id_user']
-    sql = ''' selection du contenu du panier de l'utilisateur '''
-    items_ligne_panier = []
-    # if items_ligne_panier is None or len(items_ligne_panier) < 1:
-    #     flash(u'Pas d\'articles dans le ligne_panier', 'alert-warning')
-    #     return redirect('/client/article/show')
-                                           # https://pynative.com/python-mysql-transaction-management-using-commit-rollback/
-    #a = datetime.strptime('my date', "%b %d %Y %H:%M")
 
-    sql = ''' creation de la commande '''
+    # Sélection du contenu du panier de l'utilisateur
+    sql = "SELECT * FROM panier WHERE id_client = %s"
+    mycursor.execute(sql, (id_client,))
+    items_ligne_panier = mycursor.fetchall()
 
-    sql = '''SELECT last_insert_id() as last_insert_id'''
-    # numéro de la dernière commande
+    # Création de la commande
+    sql = "INSERT INTO commande (id_client) VALUES (%s)"
+    mycursor.execute(sql, (id_client,))
+    id_commande = mycursor.lastrowid
+
+    # Ajout des lignes de commande
     for item in items_ligne_panier:
-        sql = ''' suppression d'une ligne de panier '''
-        sql = "  ajout d'une ligne de commande'"
+        sql = "INSERT INTO ligne_commande (id_commande, id_article, quantite) VALUES (%s, %s, %s)"
+        mycursor.execute(sql, (id_commande, item['id_article'], item['quantite']))
 
+    # Suppression des articles du panier
+    sql = "DELETE FROM panier WHERE id_client = %s"
+    mycursor.execute(sql, (id_client,))
+
+    # Validation de la transaction
     get_db().commit()
-    flash(u'Commande ajoutée','alert-success')
+
+    # Message de succès
+    flash(u'Commande ajoutée', 'alert-success')
+
+    # Redirection vers la page des articles
     return redirect('/client/article/show')
 
-
-
-
-@client_commande.route('/client/commande/show', methods=['get','post'])
+# Vue pour afficher les commandes du client
+@client_commande.route('/client/commande/show', methods=['GET', 'POST'])
 def client_commande_show():
+    # Récupération de la connexion à la base de données
     mycursor = get_db().cursor()
+
+    # Récupération de l'identifiant du client depuis la session
     id_client = session['id_user']
-    sql = '''  selection des commandes ordonnées par état puis par date d'achat descendant '''
-    commandes = []
 
-    articles_commande = None
-    commande_adresses = None
-    id_commande = request.args.get('id_commande', None)
-    if id_commande != None:
-        print(id_commande)
-        sql = ''' selection du détails d'une commande '''
+    # Sélection des commandes du client
+    sql = "SELECT * FROM commande WHERE id_client = %s ORDER BY etat, date_achat DESC"
+    mycursor.execute(sql, (id_client,))
+    commandes = mycursor.fetchall()
 
-        # partie 2 : selection de l'adresse de livraison et de facturation de la commande selectionnée
-        sql = ''' selection des adressses '''
-
-    return render_template('client/commandes/show.html'
-                           , commandes=commandes
-                           , articles_commande=articles_commande
-                           , commande_adresses=commande_adresses
-                           )
-
+    # Renvoi du template avec les données nécessaires
+    return render_template('client/commandes/show.html',
+                           commandes=commandes)
