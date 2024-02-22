@@ -16,22 +16,22 @@
         </div>
 
         <div class="bg-light p-3">
-            <h1>Les jeans</h1>
+            <h1>Les articles</h1>
         </div>
 
         <div class="row">
-                {% for article in jeans  %}
+                {% for article in articles  %}
                         <div class="card col-4 mt-4 p-1">
                             <div class="card-body border-dark rounded p-1">
-                                <a href="/client/article/details?id_jean={{ article.id_jean }}" >
+                                <a href="/client/article/details?id_article={{ article.id_article }}" >
                                 <h3 class="card-title">
-                                    <span style="color: #0b2e13">{{ article.nom_jean }}</span><br>
-                                    {{ article.prix_jean }}
+                                    <span style="color: #0b2e13">{{ article.nom }}</span><br>
+                                    {{ article.prix }}
                                     €
                                 </h3>
                                      {%  if article.image !='' %}
-                                        <img class="card-img-top rounded mx-auto d-block"  style="width:200px;height:200px"  src="{{ url_for('static', filename = 'images/')}}{{ article.image }}"  alt="image  de {{ article.nom }}" >
-                                    {% else %} <img class="card-img-top rounded mx-auto d-block"   style="width:200px;height:200px"   src="{{ url_for('static', filename='images/no_photo.jpeg')}}"  alt="image  de {{ article.nom }}" >
+                                        <img class="card-img-top rounded mx-auto d-block"  style="width:100px;height:100px"  src="{{ url_for('static', filename = 'images/')}}{{ article.image }}"  alt="image  de {{ article.nom }}" >
+                                    {% else %} <img class="card-img-top rounded mx-auto d-block"   style="width:100px;height:100px"   src="{{ url_for('static', filename='images/no_photo.jpeg')}}"  alt="image  de {{ article.nom }}" >
                                     {% endif %}
                                     <hr>
                                 </a>
@@ -39,14 +39,14 @@
 {# #}                                {% if  article.stock is defined and article.stock != None %}
 {# #}                                    {% if article.stock > 0 %}
                                         <form  action="/client/panier/add"  method="post" class="col-5">
-                                            <input type="hidden" name="id_jean" value="{{ article.id_jean }}" id="id_jean">
+                                            <input type="hidden" name="id_modele" value="{{ article.id_article }}">
                                             <div class="input-group">
                                             <button class="btn  btn-success"  id="button-addon1">
                                                 <i class="fas fa-shopping-cart">Ajouter</i>
                                             </button>
                                                    {% for i in nb_declinaisons %}
                                                     {% if article.id_article == i.id_article and i.nb_declinaisons == 1 %}
-                                                    <input type="number" id="input-{{ article.id_jean }}" step="1" min="0" max="{{ article.stock }}" class="form-control" value="1" name="quantite"  aria-describedby="button-addon1" id="quantite">
+                                                    <input type="number" id="input-{{ article.id_article }}" step="1" min="0" max="{{ article.stock }}" class="form-control" value="1" name="quantite"  aria-describedby="button-addon1">
                                                     {% endif %}
                                                     {% endfor %}
                                             </div>
@@ -81,14 +81,14 @@
                             {% endif %}
                             {% if article.nb_notes is defined %}
                                 {% if article.nb_notes > 0 %}
-                                 <a  href="/client/article/details?id_article={{ article.id_jean }}" >
+                                 <a  href="/client/article/details?id_article={{ article.id_article }}" >
                                     <span style="color: #3A7734"> note : {{  "{:,.1f}".format(article.moy_notes) }}({{ article.nb_notes }})</span>
                                  </a>
                                 {% endif %}
                             {% endif %}
                             {% if article.nb_avis is defined %}
                                 {% if article.nb_avis > 0 %}
-                                 <a href="/client/article/details?id_article={{ article.id_jean }}" >
+                                 <a href="/client/article/details?id_article={{ article.id_article }}" >
                                     <span style="color: #3A7734">({{ article.nb_avis }} avis)</span>
                                  </a>
                                 {% endif %}

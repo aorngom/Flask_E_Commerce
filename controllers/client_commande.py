@@ -1,86 +1,94 @@
-# Importation des modules nécessaires
-from flask import Blueprint, request, render_template, redirect, flash, session
+# validation de la commande : partie 2 -- vue pour choisir les adresses (livraison et facturation)
+#! /usr/bin/python
+# -*- coding:utf-8 -*-
+from flask import Blueprint
+from flask import Flask, request, render_template, redirect, url_for, abort, flash, session, g
+from datetime import datetime
 from connexion_db import get_db
 
-# Création du blueprint pour les commandes client
-client_commande = Blueprint('client_commande', __name__, template_folder='templates')
-
-# Vue pour valider la commande
+client_commande = Blueprint('client_commande', __name__,
+                        template_folder='templates')
 @client_commande.route('/client/commande/valide', methods=['POST'])
 def client_commande_valide():
-    # Récupération de la connexion à la base de données
     mycursor = get_db().cursor()
+    id_utilisateur = session['id_user']
 
-    # Récupération de l'identifiant du client depuis la session
-    id_client = session['id_user']
-
-    # Sélection des articles du panier
-    sql = "SELECT * FROM panier WHERE id_client = %s"
-    mycursor.execute(sql, (id_client,))
+    # Sélection des articles du panier de l'utilisateur
+    sql_panier = "SELECT dj.id_declinaison, j.nom, dj.prix_declinaison, lp.quantite, (dj.prix_declinaison * lp.quantite) AS sous_total FROM ligne_panier lp JOIN declinaison_jean dj ON lp.id_declinaison = dj.id_declinaison JOIN jean j ON dj.id_jean = j.id_jean WHERE lp.id_utilisateur = %s;"
+    mycursor.execute(sql_panier, (id_utilisateur,))
     articles_panier = mycursor.fetchall()
 
-    # Calcul du prix total du panier
-    prix_total = 0
-    for article in articles_panier:
-        prix_total += article['prix']
+    # Calcul du prix total du panier si le panier n'est pas vide
+    prix_total = None
+    if articles_panier:
+        prix_total = sum(article['sous_total'] for article in articles_panier)
 
-    # Renvoi du template avec les données nécessaires
-    return render_template('client/boutique/panier_validation_adresses.html',
-                           articles_panier=articles_panier,
-                           prix_total=prix_total,
-                           validation=1)
+    # Sélection des adresses de l'utilisateur
+    sql_adresses = "SELECT * FROM adresse WHERE id_utilisateur = %s;"
+    mycursor.execute(sql_adresses, (id_utilisateur,))
+    adresses = mycursor.fetchall()
 
-# Vue pour ajouter une commande
+    return render_template('client/boutique/panier_validation_adresses.html', adresses=adresses,
+                           articles_panier=articles_panier, prix_total=prix_total, validation=1)
+
+
 @client_commande.route('/client/commande/add', methods=['POST'])
 def client_commande_add():
-    # Récupération de la connexion à la base de données
     mycursor = get_db().cursor()
 
-    # Récupération de l'identifiant du client depuis la session
-    id_client = session['id_user']
+    id_utilisateur = session['id_user']
 
-    # Sélection du contenu du panier de l'utilisateur
-    sql = "SELECT * FROM panier WHERE id_client = %s"
-    mycursor.execute(sql, (id_client,))
-    items_ligne_panier = mycursor.fetchall()
-
-    # Création de la commande
-    sql = "INSERT INTO commande (id_client) VALUES (%s)"
-    mycursor.execute(sql, (id_client,))
+    # Insérer la nouvelle commande dans la table commande
+    sql_commande = "INSERT INTO commande (date_achat, id_adresse_livraison, id_adresse_facturation, id_utilisateur, id_etat) VALUES (NOW(), %s, %s, %s, 1)"
+    mycursor.execute(sql_commande,
+                     (request.form['adresse_livraison'], request.form['adresse_facturation'], id_utilisateur))
     id_commande = mycursor.lastrowid
 
-    # Ajout des lignes de commande
+    # Sélectionner les articles du panier de l'utilisateur
+    sql_panier = "SELECT * FROM ligne_panier WHERE id_utilisateur = %s;"
+    mycursor.execute(sql_panier, (id_utilisateur,))
+    items_ligne_panier = mycursor.fetchall()
+
+    # Insérer les articles de la commande dans la table ligne_commande
     for item in items_ligne_panier:
-        sql = "INSERT INTO ligne_commande (id_commande, id_article, quantite) VALUES (%s, %s, %s)"
-        mycursor.execute(sql, (id_commande, item['id_article'], item['quantite']))
+        sql_insert_ligne_commande = "INSERT INTO ligne_commande (id_declinaison, id_commande, quantite, prix) VALUES (%s, %s, %s, %s)"
+        mycursor.execute(sql_insert_ligne_commande,
+                         (item['id_declinaison'], id_commande, item['quantite'], item['prix']))
 
-    # Suppression des articles du panier
-    sql = "DELETE FROM panier WHERE id_client = %s"
-    mycursor.execute(sql, (id_client,))
+    # Supprimer les articles du panier de l'utilisateur
+    sql_supprimer_panier = "DELETE FROM ligne_panier WHERE id_utilisateur = %s"
+    mycursor.execute(sql_supprimer_panier, (id_utilisateur,))
 
-    # Validation de la transaction
+    # Valider la transaction
     get_db().commit()
 
-    # Message de succès
     flash(u'Commande ajoutée', 'alert-success')
-
-    # Redirection vers la page des articles
     return redirect('/client/article/show')
 
-# Vue pour afficher les commandes du client
+
 @client_commande.route('/client/commande/show', methods=['GET', 'POST'])
 def client_commande_show():
-    # Récupération de la connexion à la base de données
     mycursor = get_db().cursor()
+    id_utilisateur = session['id_user']
 
-    # Récupération de l'identifiant du client depuis la session
-    id_client = session['id_user']
-
-    # Sélection des commandes du client
-    sql = "SELECT * FROM commande WHERE id_utilisateur = %s ORDER BY etat, date_achat DESC"
-    mycursor.execute(sql, (id_client,))
+    # Sélectionner toutes les commandes de l'utilisateur
+    sql_commandes = "SELECT * FROM commande WHERE id_utilisateur = %s ORDER BY id_etat, date_achat DESC"
+    mycursor.execute(sql_commandes, (id_utilisateur,))
     commandes = mycursor.fetchall()
 
-    # Renvoi du template avec les données nécessaires
-    return render_template('client/commandes/show.html',
-                           commandes=commandes)
+    articles_commande = None
+    commande_adresses = None
+    id_commande = request.args.get('id_commande', None)
+    if id_commande is not None:
+        # Sélectionner les articles de la commande spécifiée
+        sql_articles_commande = "SELECT dj.id_declinaison, j.nom, dj.prix_declinaison, lc.quantite, (dj.prix_declinaison * lc.quantite) AS sous_total FROM ligne_commande lc JOIN declinaison_jean dj ON lc.id_declinaison = dj.id_declinaison JOIN jean j ON dj.id_jean = j.id_jean WHERE lc.id_commande = %s"
+        mycursor.execute(sql_articles_commande, (id_commande,))
+        articles_commande = mycursor.fetchall()
+
+        # Sélectionner les adresses de livraison et de facturation de la commande spécifiée
+        sql_commande_adresses = "SELECT * FROM commande WHERE id_commande = %s"
+        mycursor.execute(sql_commande_adresses, (id_commande,))
+        commande_adresses = mycursor.fetchone()
+
+    return render_template('client/commandes/show.html', commandes=commandes,
+                           articles_commande=articles_commande, commande_adresses=commande_adresses)
