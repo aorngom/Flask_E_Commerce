@@ -13,13 +13,18 @@ def client_commande_valide():
     mycursor = get_db().cursor()
     id_utilisateur = session['id_user']
 
-    # Sélection des articles du panier de l'utilisateur
-    sql_panier = "SELECT dj.id_declinaison, j.nom, dj.prix_declinaison, lp.quantite, (dj.prix_declinaison * lp.quantite) AS sous_total FROM ligne_panier lp JOIN declinaison_jean dj ON lp.id_declinaison = dj.id_declinaison JOIN jean j ON dj.id_jean = j.id_jean WHERE lp.id_utilisateur = %s;"
+    # Sélection des articles du panier de l'utilisateur et calcul du sous-total pour chaque article
+    sql_panier = '''
+    SELECT ligne_panier.id_jean, jean.nom, ligne_panier.prix, ligne_panier.quantite, (ligne_panier.prix * ligne_panier.quantite) AS sous_total
+    FROM ligne_panier
+    JOIN jean ON ligne_panier.id_jean = jean.id_jean
+    WHERE ligne_panier.id_utilisateur = %s;
+    '''
     mycursor.execute(sql_panier, (id_utilisateur,))
     articles_panier = mycursor.fetchall()
 
-    # Calcul du prix total du panier si le panier n'est pas vide
-    prix_total = None
+    # Calcul du prix total du panier
+    prix_total = 0
     if articles_panier:
         prix_total = sum(article['sous_total'] for article in articles_panier)
 
@@ -37,32 +42,33 @@ def client_commande_add():
     mycursor = get_db().cursor()
 
     id_utilisateur = session['id_user']
+    date_achat = datetime.today().strftime('%Y-%m-%d')
 
     # Insérer la nouvelle commande dans la table commande
-    sql_commande = "INSERT INTO commande (date_achat, id_adresse_livraison, id_adresse_facturation, id_utilisateur, id_etat) VALUES (NOW(), %s, %s, %s, 1)"
-    mycursor.execute(sql_commande,
-                     (request.form['adresse_livraison'], request.form['adresse_facturation'], id_utilisateur))
+    sql_commande = '''INSERT INTO commande (date_achat, utilisateur_id, etat_id) VALUES (%s, %s, 1)'''
+    mycursor.execute(sql_commande, (date_achat, id_utilisateur))
+
+    # Récupérer l'ID de la dernière commande insérée
     id_commande = mycursor.lastrowid
 
     # Sélectionner les articles du panier de l'utilisateur
-    sql_panier = "SELECT * FROM ligne_panier WHERE id_utilisateur = %s;"
+    sql_panier = '''SELECT * FROM ligne_panier WHERE id_utilisateur = %s;'''
     mycursor.execute(sql_panier, (id_utilisateur,))
     items_ligne_panier = mycursor.fetchall()
 
     # Insérer les articles de la commande dans la table ligne_commande
     for item in items_ligne_panier:
-        sql_insert_ligne_commande = "INSERT INTO ligne_commande (id_declinaison, id_commande, quantite, prix) VALUES (%s, %s, %s, %s)"
-        mycursor.execute(sql_insert_ligne_commande,
-                         (item['id_declinaison'], id_commande, item['quantite'], item['prix']))
+        sql_insert_ligne_commande = '''INSERT INTO ligne_commande (id_commande, id_jean, quantite, prix) VALUES (%s, %s, %s, %s)'''
+        mycursor.execute(sql_insert_ligne_commande, (id_commande, item['id_jean'], item['quantite'], item['prix']))
 
     # Supprimer les articles du panier de l'utilisateur
-    sql_supprimer_panier = "DELETE FROM ligne_panier WHERE id_utilisateur = %s"
+    sql_supprimer_panier = '''DELETE FROM ligne_panier WHERE id_utilisateur = %s'''
     mycursor.execute(sql_supprimer_panier, (id_utilisateur,))
 
     # Valider la transaction
     get_db().commit()
 
-    flash(u'Commande ajoutée', 'alert-success')
+    flash('Commande ajoutée', 'alert-success')
     return redirect('/client/article/show')
 
 
@@ -72,23 +78,23 @@ def client_commande_show():
     id_utilisateur = session['id_user']
 
     # Sélectionner toutes les commandes de l'utilisateur
-    sql_commandes = "SELECT * FROM commande WHERE id_utilisateur = %s ORDER BY id_etat, date_achat DESC"
+    sql_commandes = "SELECT * FROM commande WHERE utilisateur_id = %s ORDER BY etat_id, date_achat DESC"
     mycursor.execute(sql_commandes, (id_utilisateur,))
     commandes = mycursor.fetchall()
 
     articles_commande = None
-    commande_adresses = None
-    id_commande = request.args.get('id_commande', None)
-    if id_commande is not None:
+    id_commande = request.args.get('id_commande')
+    if id_commande:
         # Sélectionner les articles de la commande spécifiée
-        sql_articles_commande = "SELECT dj.id_declinaison, j.nom, dj.prix_declinaison, lc.quantite, (dj.prix_declinaison * lc.quantite) AS sous_total FROM ligne_commande lc JOIN declinaison_jean dj ON lc.id_declinaison = dj.id_declinaison JOIN jean j ON dj.id_jean = j.id_jean WHERE lc.id_commande = %s"
+        sql_articles_commande = '''
+        SELECT ligne_commande.id_jean, jean.nom, ligne_commande.prix, ligne_commande.quantite,
+        (ligne_commande.prix * ligne_commande.quantite) AS sous_total
+        FROM ligne_commande
+        JOIN jean ON ligne_commande.id_jean = jean.id_jean
+        WHERE ligne_commande.id_commande = %s;
+        '''
         mycursor.execute(sql_articles_commande, (id_commande,))
         articles_commande = mycursor.fetchall()
 
-        # Sélectionner les adresses de livraison et de facturation de la commande spécifiée
-        sql_commande_adresses = "SELECT * FROM commande WHERE id_commande = %s"
-        mycursor.execute(sql_commande_adresses, (id_commande,))
-        commande_adresses = mycursor.fetchone()
-
     return render_template('client/commandes/show.html', commandes=commandes,
-                           articles_commande=articles_commande, commande_adresses=commande_adresses)
+                           articles_commande=articles_commande)

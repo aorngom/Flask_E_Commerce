@@ -6,6 +6,7 @@
     {% if items_filtre is defined %}
         <div class="form-group">
             <h4>Types d'articles</h4>
+
             {% for item_filtre in items_filtre %}
                 <input type="checkbox" name="filter_types[]" value="{{ item_filtre.id_coupe_jean }}"
                        {% set id_item = item_filtre.id_coupe_jean|string %}
@@ -21,6 +22,7 @@
         <h5>Prix :</h5>
         <input name="filter_prix_min" type="text" placeholder="min" size="3"
                value="{% if session['filter_prix_min'] %}{{ session['filter_prix_min'] }}{% endif %}">
+
         <input name="filter_prix_max" type="text" placeholder="max" size="3"
                value="{% if session['filter_prix_max'] %}{{ session['filter_prix_max'] }}{% endif %}">
     </div>
